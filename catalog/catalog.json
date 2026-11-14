@@ -1,0 +1,10 @@
+[
+  {
+    "torrent": "big-buck-bunny.torrent",
+    "label": "Big Buck Bunny · 720p",
+    "priority": 100,
+    "media": {
+      "tt1254207": "Content/big_buck_bunny_720p_surround.mp4"
+    }
+  }
+]
