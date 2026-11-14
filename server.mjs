@@ -177,7 +177,7 @@ const server = createServer(async (request, response) => {
   const extra = jackett.filter(stream => stream.fileIdx !== undefined || !knownFiles.has(stream.infoHash));
   const distinct = new Map([...extra, ...local, ...remote].map(stream =>
     [stream.infoHash + ':' + stream.fileIdx, stream]));
-  const formatted = [...distinct.values()].map(stream => formatStream(stream, manifest.name));
+  const formatted = [...distinct.values()].map(stream => formatStream(stream, 'REELO'));
   const frenchRank = stream => {
     const languages = stream.description.match(/\|LANG=([^|]*)\|/)?.[1].split(',') ?? [];
     if (languages.includes('French')) return 0;
