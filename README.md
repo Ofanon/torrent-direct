@@ -114,3 +114,17 @@ Pour mettre à jour le service :
 git pull --ff-only
 docker compose up --build -d
 ```
+
+## TorBox privé pour Reelo
+
+Dans le fichier `.env` du VPS, renseigner la clé TorBox et le domaine HTTPS du reverse proxy. Générer un secret indépendant avec `openssl rand -hex 32`.
+
+```dotenv
+TORBOX_API_KEY=
+TORBOX_ACCESS_TOKEN=
+TORBOX_PUBLIC_ORIGIN=https://torrent.example.com
+```
+
+Après `docker compose up --build -d`, installer dans Reelo le manifeste `https://torrent.example.com/torbox/VOTRE_SECRET/manifest.json`. Garder cette URL privée et masquer ce chemin dans les journaux du reverse proxy. Changer le secret révoque l'accès précédent.
+
+Seuls les torrents déjà en cache avec un fichier vidéo identifiable apparaissent. Le clic ajoute le torrent en mode cache uniquement et demande un lien HTTPS temporaire à TorBox. Le manifeste à la racine continue à fournir des sources BitTorrent.

@@ -1,3 +1,4 @@
+import { privatePrefix, torboxStreams, torboxPlayback } from './torbox.mjs';
 import { formatStream } from './stream-format.mjs';
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
@@ -7,7 +8,7 @@ import { publicMovies, publicStreams } from './public-movies.mjs';
 import { jackettStreams, refreshJackett, seriesName } from './jackett.mjs';
 
 const manifest = {
-  id: 'org.selfhosted.directtorrent', version: '1.10.2', name: 'Torrent Direct',
+  id: 'org.selfhosted.directtorrent', version: '1.11.0', name: 'Torrent Direct',
   description: 'Index BitTorrent auto-hébergé', resources: ['stream', { name: 'meta', types: ['movie'], idPrefixes: ['tt1254207'] }, 'catalog'],
   types: ['movie', 'series'], catalogs: [{ type: 'movie', id: 'torrent-direct-demo', name: 'Torrent Direct', extra: [{ name: 'search' }] }], idPrefixes: ['tt'],
 };
@@ -129,9 +130,22 @@ const server = createServer(async (request, response) => {
     });
     response.end(JSON.stringify(body));
   }
-  const path = request.url.split('?')[0];
+  let path = request.url.split('?')[0];
+  const privateMode = privatePrefix !== null && path.startsWith(privatePrefix + '/');
+  if (privateMode) path = path.slice(privatePrefix.length);
   if (request.method !== 'GET') return json(405, { error: 'GET requis' });
-  if (path === '/manifest.json') return json(200, manifest);
+  if (privateMode && path.startsWith('/play/')) {
+    try {
+      const url = await torboxPlayback(path);
+      if (!url) return json(404, { error: 'Lien privé invalide ou expiré' });
+      response.writeHead(302, { location: url, 'cache-control': 'no-store' });
+      return response.end();
+    } catch {
+      return json(502, { error: 'Fichier TorBox indisponible' });
+    }
+  }
+  if (path === '/manifest.json') return json(200, privateMode
+    ? { ...manifest, id: manifest.id + '.torbox', name: 'REELO TorBox' } : manifest);
   if (path === '/health') return json(loaded ? 200 : 503, { ready: loaded, titles: index.size });
   const catalog = /^\/catalog\/movie\/torrent-direct-demo(?:\/search=([^/]{1,600}))?\.json$/.exec(path);
   if (catalog) {
@@ -177,7 +191,13 @@ const server = createServer(async (request, response) => {
   const extra = jackett.filter(stream => stream.fileIdx !== undefined || !knownFiles.has(stream.infoHash));
   const distinct = new Map([...extra, ...local, ...remote].map(stream =>
     [stream.infoHash + ':' + stream.fileIdx, stream]));
-  const formatted = [...distinct.values()].map(stream => formatStream(stream, 'REELO'));
+  const candidates = [...distinct.values()];
+  let available = candidates;
+  if (privateMode) {
+    try { available = await torboxStreams(candidates, id); }
+    catch { return json(502, { streams: [], error: 'Cache TorBox indisponible' }); }
+  }
+  const formatted = available.map(stream => formatStream(stream, 'REELO'));
   const frenchRank = stream => {
     const languages = stream.description.match(/\|LANG=([^|]*)\|/)?.[1].split(',') ?? [];
     if (languages.includes('French')) return 0;
@@ -186,7 +206,7 @@ const server = createServer(async (request, response) => {
     return 3;
   };
   const streams = formatted.sort((a, b) => frenchRank(a) - frenchRank(b)).slice(0, maxResults);
-  return json(200, { streams }, streams.length ? 'public, max-age=60' : 'no-store');
+  return json(200, { streams }, !privateMode && streams.length ? 'public, max-age=60' : 'no-store');
 });
 
 server.listen(Number(process.env.PORT ?? 7000), process.env.BIND ?? '127.0.0.1');

@@ -1,7 +1,7 @@
 const pick = (value, pattern) => value.match(pattern)?.[0] ?? '';
 
 export function formatStream(stream, addonName) {
-  const { format = {}, ...result } = stream;
+  const { format = {}, cached = false, ...result } = stream;
   const lines = (stream.description ?? '').split('\n');
   const parts = lines[0].split(' · ');
   const label = format.release ?? parts[0];
@@ -26,7 +26,7 @@ export function formatStream(stream, addonName) {
   const fields = {
     RES: resolution, Q: quality, ENC: encode, BR: '', SIZE: size, DUR: '',
     LANG: languages.join(','), VT: visual.join(','), AT: audio.join(','),
-    GRP: group, ADDON: addonName, CACHED: '0', FILE: filename,
+    GRP: group, ADDON: addonName, CACHED: cached ? '1' : '0', FILE: filename,
   };
   result.description = Object.entries(fields).map(([key, value]) =>
     key + '=' + String(value ?? '').replace(/[|\r\n]/g, ' ')).join('|');

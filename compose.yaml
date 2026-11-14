@@ -13,6 +13,9 @@ services:
       JACKETT_PREFILL: ${JACKETT_PREFILL:-}
       P2P_ADDONS: ${P2P_ADDONS-stremthru-torz,torrentio}
       DIRECT_INDEXERS: ${DIRECT_INDEXERS-apibay,knaben,torrentscsv,therarbg,eztvtorrent}
+      TORBOX_API_KEY: ${TORBOX_API_KEY:-}
+      TORBOX_ACCESS_TOKEN: ${TORBOX_ACCESS_TOKEN:-}
+      TORBOX_PUBLIC_ORIGIN: ${TORBOX_PUBLIC_ORIGIN:-}
       JACKETT_DB: /data/jackett-index.sqlite
     restart: unless-stopped
 volumes:
